@@ -1,0 +1,223 @@
+if game.PlaceId == 155615604 then
+    local Players = game:GetService("Players")
+    local Teams = game:GetService("Teams")
+    local LocalPlayer = Players.LocalPlayer
+    local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Orion/main/source'))()
+
+    -- Calculando a posição central da tela
+    local screenSize = workspace.CurrentCamera.ViewportSize
+    local windowSize = Vector2.new(800, 600) -- Defina o tamanho da janela que deseja
+    local centerPosition = Vector2.new((screenSize.X - windowSize.X) / 2, (screenSize.Y - windowSize.Y) / 2)
+
+    local Window = OrionLib:MakeWindow({
+        Name = "Project HUB",
+        HidePremium = false,
+        SaveConfig = true,
+        ConfigFolder = "Pedro2",
+        Position = UDim2.new(0, centerPosition.X, 0, centerPosition.Y) -- Centralizando a janela
+    })
+
+    -- Aba Menu
+    local MenuTab = Window:MakeTab({
+        Name = "Menu",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    local MenuSection = MenuTab:AddSection({
+        Name = "Menu"
+    })
+
+    -- Adicionando rótulos de informações
+    MenuSection:AddLabel("                             Bem vindo ao Project Hub          ")
+    MenuSection:AddLabel("Version: Alpha 1.0")
+    MenuSection:AddLabel("Creator: Pedro2")
+
+    -- Aba Painel
+    local PainelTab = Window:MakeTab({
+        Name = "Painel",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    local PainelSection = PainelTab:AddSection({
+        Name = "Painel"
+    })
+
+    -- Variável global
+    local selectedItem = "Regmington 870" -- Nome do item a ser equipado
+
+    -- Tabela de posições dos itens
+    local itemPositions = {
+        ["Regmington 870"] = Vector3.new(824.733032, 104.043213, 2250.36157),
+        ["AK-47"] = Vector3.new(-936.297119, 93.5627747, 2056.54248),
+        ["M9"] = Vector3.new(819.039795, 103.680145, 2250.36841),
+        ["Knife"] = Vector3.new(707.141479, 98.9156265, 2502.46899),
+        ["Hammer"] = Vector3.new(774.149414, 95.5899506, 2522.67163)
+    }
+
+    -- Função para teleportar para o item
+    local function teleportToItem(itemName)
+        local position = itemPositions[itemName]
+        if position and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+        else
+            warn("HumanoidRootPart não encontrado ou item não existe!")
+        end
+    end
+
+    -- Dropdown para escolher o item
+    PainelSection:AddDropdown({
+        Name = "Escolha o item",
+        Default = selectedItem,
+        Options = {"Regmington 870", "AK-47", "M9", "Knife", "Hammer"},
+        Callback = function(Value)
+            selectedItem = Value
+        end
+    })
+
+    -- Botão para teleportar para o item
+    PainelSection:AddButton({
+        Name = "Ir para o Item",
+        Callback = function()
+            teleportToItem(selectedItem)
+        end
+    })
+
+    -- Adicionando uma seção para itens VIP
+    local vipSection = PainelTab:AddSection({
+        Name = "Item de gamepass"
+    })
+
+    -- Adicionando rótulos de informações para os itens VIP
+    vipSection:AddLabel("Teleport para o item de gamepass")
+    vipSection:AddLabel('Necessário gamepass: "Acesso a polícia"')
+
+    -- Tabela de posições dos itens VIP
+    local vipItemPositions = {
+        ["M4A1"] = Vector3.new(853.774536, 103.288452, 2250.48145),
+        ["Shield"] = Vector3.new(849.270386, 100.510056, 2251.1897)
+    }
+
+    -- Função para teleportar para o item VIP
+    local function teleportToVipItem(itemName)
+        local position = vipItemPositions[itemName]
+        if position and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+        else
+            warn("Algo deu errado!")
+        end
+    end
+
+    -- Dropdown para escolher o item VIP
+    vipSection:AddDropdown({
+        Name = "Escolha o item VIP",
+        Default = "M4A1",
+        Options = {"M4A1", "Shield"},
+        Callback = function(Value)
+            selectedItem = Value
+        end
+    })
+
+    -- Botão para teleportar para o item VIP
+    vipSection:AddButton({
+        Name = "Pegar o item",
+        Callback = function()
+            teleportToVipItem(selectedItem)
+        end
+    })
+
+    -- Aba para mudar de equipes
+    local teamTab = Window:MakeTab({
+        Name = "Teams",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    local teamSection = teamTab:AddSection({
+        Name = "Teams"
+    })
+
+    teamSection:AddLabel("Infelizmente o change team é apenas visual")
+    teamSection:AddLabel("Estou tentando arrumar isso")
+
+    -- Função para trocar de equipe
+    local function changeTeam(teamName)
+        local targetTeam = Teams:FindFirstChild(teamName)
+        if targetTeam then
+            LocalPlayer.Team = targetTeam
+        else
+            warn("Time não encontrado: " .. teamName)
+        end
+    end
+
+    -- Botões para trocar de equipe
+    teamSection:AddButton({
+        Name = "Guards",
+        Callback = function()
+            changeTeam("Guards") -- Trocar para a equipe Guards
+        end    
+    })
+
+    teamSection:AddButton({
+        Name = "Criminals",
+        Callback = function()
+            changeTeam("Criminals") -- Trocar para a equipe Criminals
+        end    
+    })
+
+    teamSection:AddButton({
+        Name = "Neutral",
+        Callback = function()
+            changeTeam("Neutral") -- Trocar para a equipe Neutral
+        end    
+    })
+
+    -- Aba para teleportar
+    local tpTab = Window:MakeTab({
+        Name = "Teleport",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    local tpSection = tpTab:AddSection({
+        Name = "Teleport"
+    })
+
+    tpSection:AddLabel("Selecione o lugar e clique no botão para teleportar")
+
+    -- Variável global para armazenar a posição selecionada
+    local selectedTeleportPosition = Vector3.new(0, 0, 0)
+
+    -- Dropdown para selecionar o lugar
+    tpSection:AddDropdown({
+        Name = "Selecione um spawn",
+        Default = "Prison",
+        Options = {"Prison", "Guards", "Criminals"},
+        Callback = function(Value)
+            local coordenadas = {
+                ["Prison"] = Vector3.new(888.399658, 97.1383057, 2388.50073),
+                ["Guards"] = Vector3.new(851.853882, 97.1003571, 2292.77686),
+                ["Criminals"] = Vector3.new(-920.510803, 92.2271957, 2138.27002)
+            }
+            selectedTeleportPosition = coordenadas[Value] or Vector3.new(0, 0, 0)
+        end
+    })
+
+    -- Função de teleporte
+    local function teleportToPosition(position)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+        else
+            warn("HumanoidRootPart não encontrado!")
+        end
+    end
+
+    -- Botão para executar o teleporte
+    tpSection:AddButton({
+        Name = "Teleportar",
+        Callback = function()
+            teleportToPosition(selectedTeleportPosition)
+        end    
+    })
+end
