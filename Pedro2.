@@ -2,52 +2,187 @@ if game.PlaceId == 155615604 then
     local Players = game:GetService("Players")
     local Teams = game:GetService("Teams")
     local LocalPlayer = Players.LocalPlayer
-    local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Orion/main/source'))()
+    
+    -- Carregando a UI Fluent
+    local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+    local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+    local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
-    -- Calculando a posição central da tela
-    local screenSize = workspace.CurrentCamera.ViewportSize
-    local windowSize = Vector2.new(800, 600) -- Defina o tamanho da janela que deseja
-    local centerPosition = Vector2.new((screenSize.X - windowSize.X) / 2, (screenSize.Y - windowSize.Y) / 2)
+    local Window = Fluent:CreateWindow({
+        Title = "Project HUB",
+        SubTitle = "by Pedro2",
+        TabWidth = 160,
+        Size = UDim2.fromOffset(580, 460),
+        Acrylic = true,
+        Theme = "Dark",
+        MinimizeKey = Enum.KeyCode.LeftControl
+    })
 
-    local Window = OrionLib:MakeWindow({
-        Name = "Project HUB",
-        HidePremium = false,
-        SaveConfig = true,
-        ConfigFolder = "Pedro2",
-        Position = UDim2.new(0, centerPosition.X, 0, centerPosition.Y) -- Centralizando a janela
+    -- Criando as abas
+    local Tabs = {
+        Menu = Window:AddTab({ Title = "Menu", Icon = "home" }),
+        Painel = Window:AddTab({ Title = "Painel", Icon = "layout-dashboard" }),
+        Teams = Window:AddTab({ Title = "Teams", Icon = "users" }),
+        Teleport = Window:AddTab({ Title = "Teleport", Icon = "map-pin" }),
+        Misc = Window:AddTab({ Title = "Misc", Icon = "settings" }),
+
+    }
+
+    local Options = Fluent.Options
+
+    -- Notificação inicial
+    Fluent:Notify({
+        Title = "Project HUB",
+        Content = "Script carregado com sucesso!",
+        Duration = 5
     })
 
     -- Aba Menu
-    local MenuTab = Window:MakeTab({
-        Name = "Menu",
-        Icon = "rbxassetid://4483345998",
-        PremiumOnly = false
+    Tabs.Menu:AddParagraph({
+        Title = "Bem vindo ao Project Hub",
+        Content = "Version: Alpha 1.0\nCreator: Pedro2"
     })
-
-    local MenuSection = MenuTab:AddSection({
-        Name = "Menu"
-    })
-
-    -- Adicionando rótulos de informações
-    MenuSection:AddLabel("                             Bem vindo ao Project Hub          ")
-    MenuSection:AddLabel("Version: Alpha 1.0")
-    MenuSection:AddLabel("Creator: Pedro2")
 
     -- Aba Painel
-    local PainelTab = Window:MakeTab({
-        Name = "Painel",
-        Icon = "rbxassetid://4483345998",
-        PremiumOnly = false
+    -- Kill Aura Section
+    local KillAuraSection = Tabs.Painel:AddSection("Kill Aura")
+
+    local KillAuraEnabled = Tabs.Painel:AddToggle("KillAura", {
+        Title = "Kill Aura",
+        Description = "Ataca jogadores próximos automaticamente",
+        Default = false
     })
 
-    local PainelSection = PainelTab:AddSection({
-        Name = "Painel"
+    local KillAuraRange = Tabs.Painel:AddSlider("KillAuraRange", {
+        Title = "Kill Aura Range",
+        Description = "Distância do Kill Aura",
+        Default = 50,
+        Min = 10,
+        Max = 100,
+        Rounding = 1,
     })
 
-    -- Variável global
-    local selectedItem = "Regmington 870" -- Nome do item a ser equipado
+    -- Botão Kill All com teleporte
+    Tabs.Painel:AddButton({
+        Title = "Kill All (Teleport)",
+        Description = "Teleporta e mata todos os jogadores",
+        Callback = function()
+            local player = game.Players.LocalPlayer
+            local originalPosition = player.Character.HumanoidRootPart.CFrame
 
-    -- Tabela de posições dos itens
+            function killAllPlayers()
+                for _, targetPlayer in pairs(game.Players:GetPlayers()) do
+                    if targetPlayer ~= player and 
+                       targetPlayer.Character and 
+                       targetPlayer.Character:FindFirstChild("HumanoidRootPart") and 
+                       targetPlayer.Character:FindFirstChild("Humanoid") then
+                        
+                        -- Teleporta para o jogador
+                        player.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame
+                        
+                        -- Pequeno delay para garantir que o teleporte ocorreu
+                        task.wait(0.1)
+                        
+                        -- Mata o jogador
+                        local humanoid = targetPlayer.Character.Humanoid
+                        humanoid.Health = 0
+                    end
+                end
+                
+                -- Retorna à posição original
+                task.wait(0.1)
+                player.Character.HumanoidRootPart.CFrame = originalPosition
+            end
+
+            killAllPlayers()
+            
+            Fluent:Notify({
+                Title = "Kill All",
+                Content = "Teleporte e eliminação concluídos",
+                Duration = 2
+            })
+        end
+    })
+
+    -- Funções do Kill Aura (toggle)
+    local function findNearbyPlayers()
+        local nearbyPlayers = {}
+        local range = Options.KillAuraRange.Value
+        
+        for _, otherPlayer in pairs(Players:GetPlayers()) do
+            if otherPlayer ~= LocalPlayer 
+                and otherPlayer.Character 
+                and otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+                and LocalPlayer.Character
+                and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                
+                local distance = (LocalPlayer.Character.HumanoidRootPart.Position - otherPlayer.Character.HumanoidRootPart.Position).Magnitude
+                if distance <= range then
+                    table.insert(nearbyPlayers, otherPlayer)
+                end
+            end
+        end
+        return nearbyPlayers
+    end
+
+    local function attackNearbyPlayers()
+        local nearbyPlayers = findNearbyPlayers()
+        for _, targetPlayer in pairs(nearbyPlayers) do
+            if targetPlayer 
+                and targetPlayer.Character 
+                and targetPlayer.Character:FindFirstChild("Humanoid") then
+                
+                local humanoid = targetPlayer.Character.Humanoid
+                if humanoid.Health > 0 then
+                    humanoid.Health = 0 -- Mata instantaneamente
+                end
+            end
+        end
+    end
+
+    -- Kill Aura Loop
+    local killAuraConnection
+    KillAuraEnabled:OnChanged(function()
+        if Options.KillAura.Value then
+            killAuraConnection = game:GetService("RunService").Stepped:Connect(function()
+                if LocalPlayer.Character then
+                    attackNearbyPlayers()
+                end
+            end)
+            
+            Fluent:Notify({
+                Title = "Kill Aura",
+                Content = "Kill Aura ativado - Range: " .. Options.KillAuraRange.Value,
+                Duration = 2
+            })
+        else
+            if killAuraConnection then
+                killAuraConnection:Disconnect()
+                killAuraConnection = nil
+            end
+            
+            Fluent:Notify({
+                Title = "Kill Aura",
+                Content = "Kill Aura desativado",
+                Duration = 2
+            })
+        end
+    end)
+
+    -- Atualização do Range
+    KillAuraRange:OnChanged(function(value)
+        if Options.KillAura.Value then
+            Fluent:Notify({
+                Title = "Kill Aura",
+                Content = "Range atualizado para: " .. value,
+                Duration = 1
+            })
+        end
+    end)
+
+    -- Weapons Section
+    local WeaponsSection = Tabs.Painel:AddSection("Weapons")
+
     local itemPositions = {
         ["Regmington 870"] = Vector3.new(824.733032, 104.043213, 2250.36157),
         ["AK-47"] = Vector3.new(-936.297119, 93.5627747, 2056.54248),
@@ -56,168 +191,187 @@ if game.PlaceId == 155615604 then
         ["Hammer"] = Vector3.new(774.149414, 95.5899506, 2522.67163)
     }
 
-    -- Função para teleportar para o item
-    local function teleportToItem(itemName)
-        local position = itemPositions[itemName]
-        if position and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-        else
-            warn("HumanoidRootPart não encontrado ou item não existe!")
-        end
-    end
-
-    -- Dropdown para escolher o item
-    PainelSection:AddDropdown({
-        Name = "Escolha o item",
-        Default = selectedItem,
-        Options = {"Regmington 870", "AK-47", "M9", "Knife", "Hammer"},
-        Callback = function(Value)
-            selectedItem = Value
-        end
+    local Dropdown = Tabs.Painel:AddDropdown("WeaponSelect", {
+        Title = "Escolha a arma",
+        Values = {"Regmington 870", "AK-47", "M9", "Knife", "Hammer"},
+        Default = "Regmington 870",
     })
 
-    -- Botão para teleportar para o item
-    PainelSection:AddButton({
-        Name = "Ir para o Item",
+    Tabs.Painel:AddButton({
+        Title = "Ir para a arma",
+        Description = "Teleporta até a arma selecionada",
         Callback = function()
-            teleportToItem(selectedItem)
+            local position = itemPositions[Dropdown.Value]
+            if position and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+                Fluent:Notify({
+                    Title = "Sucesso",
+                    Content = "Teleportado para: " .. Dropdown.Value,
+                    Duration = 2
+                })
+            end
         end
     })
 
-    -- Adicionando uma seção para itens VIP
-    local vipSection = PainelTab:AddSection({
-        Name = "Item de gamepass"
+    -- Seção VIP
+    Tabs.Painel:AddParagraph({
+        Title = "Itens VIP",
+        Content = "Necessário gamepass: 'Acesso a polícia'"
     })
 
-    -- Adicionando rótulos de informações para os itens VIP
-    vipSection:AddLabel("Teleport para o item de gamepass")
-    vipSection:AddLabel('Necessário gamepass: "Acesso a polícia"')
-
-    -- Tabela de posições dos itens VIP
     local vipItemPositions = {
         ["M4A1"] = Vector3.new(853.774536, 103.288452, 2250.48145),
         ["Shield"] = Vector3.new(849.270386, 100.510056, 2251.1897)
     }
 
-    -- Função para teleportar para o item VIP
-    local function teleportToVipItem(itemName)
-        local position = vipItemPositions[itemName]
-        if position and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-        else
-            warn("Algo deu errado!")
-        end
-    end
-
-    -- Dropdown para escolher o item VIP
-    vipSection:AddDropdown({
-        Name = "Escolha o item VIP",
+    local VipDropdown = Tabs.Painel:AddDropdown("VipWeaponSelect", {
+        Title = "Escolha a arma VIP",
+        Values = {"M4A1", "Shield"},
         Default = "M4A1",
-        Options = {"M4A1", "Shield"},
-        Callback = function(Value)
-            selectedItem = Value
-        end
     })
 
-    -- Botão para teleportar para o item VIP
-    vipSection:AddButton({
-        Name = "Pegar o item",
+    Tabs.Painel:AddButton({
+        Title = "Ir para a arma VIP",
+        Description = "Teleporta até a arma VIP selecionada",
         Callback = function()
-            teleportToVipItem(selectedItem)
+            local position = vipItemPositions[VipDropdown.Value]
+            if position and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+                Fluent:Notify({
+                    Title = "Sucesso",
+                    Content = "Teleportado para: " .. VipDropdown.Value,
+                    Duration = 2
+                })
+            end
         end
     })
 
-    -- Aba para mudar de equipes
-    local teamTab = Window:MakeTab({
-        Name = "Teams",
-        Icon = "rbxassetid://4483345998",
-        PremiumOnly = false
+    -- Aba Teams
+    Tabs.Teams:AddParagraph({
+        Title = "Aviso",
+        Content = "A troca de equipe é apenas visual por enquanto"
     })
 
-    local teamSection = teamTab:AddSection({
-        Name = "Teams"
-    })
-
-    teamSection:AddLabel("Infelizmente o change team é apenas visual")
-    teamSection:AddLabel("Estou tentando arrumar isso")
-
-    -- Função para trocar de equipe
     local function changeTeam(teamName)
         local targetTeam = Teams:FindFirstChild(teamName)
         if targetTeam then
             LocalPlayer.Team = targetTeam
-        else
-            warn("Time não encontrado: " .. teamName)
+            Fluent:Notify({
+                Title = "Time alterado",
+                Content = "Novo time: " .. teamName,
+                Duration = 2
+            })
         end
     end
 
-    -- Botões para trocar de equipe
-    teamSection:AddButton({
-        Name = "Guards",
+    Tabs.Teams:AddButton({
+        Title = "Prisoner",
+        Description = "Entrar no time dos prisioneiros",
         Callback = function()
-            changeTeam("Guards") -- Trocar para a equipe Guards
-        end    
+            changeTeam("Inmates")
+        end
     })
 
-    teamSection:AddButton({
-        Name = "Criminals",
+    Tabs.Teams:AddButton({
+        Title = "Guards",
+        Description = "Entrar no time dos guardas",
         Callback = function()
-            changeTeam("Criminals") -- Trocar para a equipe Criminals
-        end    
+            changeTeam("Guards")
+        end
     })
 
-    teamSection:AddButton({
-        Name = "Neutral",
+    Tabs.Teams:AddButton({
+        Title = "Criminals",
+        Description = "Entrar no time dos criminosos",
         Callback = function()
-            changeTeam("Neutral") -- Trocar para a equipe Neutral
-        end    
+            changeTeam("Criminals")
+        end
     })
 
-    -- Aba para teleportar
-    local tpTab = Window:MakeTab({
-        Name = "Teleport",
-        Icon = "rbxassetid://4483345998",
-        PremiumOnly = false
+    Tabs.Teams:AddButton({
+        Title = "Neutral",
+        Description = "Entrar no time neutro",
+        Callback = function()
+            changeTeam("Neutral")
+        end
     })
 
-    local tpSection = tpTab:AddSection({
-        Name = "Teleport"
-    })
+    -- Aba Teleport
+    local teleportLocations = {
+        ["Prison"] = Vector3.new(888.399658, 97.1383057, 2388.50073),
+        ["Guards"] = Vector3.new(851.853882, 97.1003571, 2292.77686),
+        ["Criminals"] = Vector3.new(-920.510803, 92.2271957, 2138.27002)
+    }
 
-    tpSection:AddLabel("Selecione o lugar e clique no botão para teleportar")
-
-    -- Variável global para armazenar a posição selecionada
-    local selectedTeleportPosition = Vector3.new(0, 0, 0)
-
-    -- Dropdown para selecionar o lugar
-    tpSection:AddDropdown({
-        Name = "Selecione um spawn",
+    local TpDropdown = Tabs.Teleport:AddDropdown("TeleportSelect", {
+        Title = "Selecione o local",
+        Values = {"Prison", "Guards", "Criminals"},
         Default = "Prison",
-        Options = {"Prison", "Guards", "Criminals"},
-        Callback = function(Value)
-            local coordenadas = {
-                ["Prison"] = Vector3.new(888.399658, 97.1383057, 2388.50073),
-                ["Guards"] = Vector3.new(851.853882, 97.1003571, 2292.77686),
-                ["Criminals"] = Vector3.new(-920.510803, 92.2271957, 2138.27002)
-            }
-            selectedTeleportPosition = coordenadas[Value] or Vector3.new(0, 0, 0)
-        end
     })
 
-    -- Função de teleporte
-    local function teleportToPosition(position)
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-        else
-            warn("HumanoidRootPart não encontrado!")
-        end
-    end
-
-    -- Botão para executar o teleporte
-    tpSection:AddButton({
-        Name = "Teleportar",
+    Tabs.Teleport:AddButton({
+        Title = "Teleportar",
+        Description = "Ir para o local selecionado",
         Callback = function()
-            teleportToPosition(selectedTeleportPosition)
-        end    
+            local position = teleportLocations[TpDropdown.Value]
+            if position and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+                Fluent:Notify({
+                    Title = "Teleporte",
+                    Content = "Teleportado para: " .. TpDropdown.Value,
+                    Duration = 2
+                })
+            end
+        end
     })
+
+    -- Aba Misc
+    Tabs.Misc:AddButton({
+        Title = "Remover portas",
+        Description = "Remove todas as portas do mapa",
+        Callback = function()
+            local porta = game.workspace:FindFirstChild("Doors")
+            if porta then
+                porta:Destroy()
+                Fluent:Notify({
+                    Title = "Sucesso",
+                    Content = "Portas removidas",
+                    Duration = 2
+                })
+            end
+        end
+    })
+
+    Tabs.Misc:AddButton({
+        Title = "Remover grades",
+        Description = "Remove as grades das celas",
+        Callback = function()
+            local gate = workspace:FindFirstChild("Prison_Cellblock")
+            if gate then
+                local grades = gate:FindFirstChild("doors")
+                if grades then
+                    grades:Destroy()
+                    Fluent:Notify({
+                        Title = "Sucesso",
+                        Content = "Grades removidas",
+                        Duration = 2
+                    })
+                end
+            end
+        end
+    })
+
+    -- Configuração dos gerenciadores
+    SaveManager:SetLibrary(Fluent)
+    InterfaceManager:SetLibrary(Fluent)
+    SaveManager:IgnoreThemeSettings()
+    SaveManager:SetFolder("ProjectHub")
+    InterfaceManager:SetFolder("ProjectHub")
+    
+    -- Construindo seções de configuração
+    InterfaceManager:BuildInterfaceSection(Tabs.Misc)
+    SaveManager:BuildConfigSection(Tabs.Misc)
+
+    Window:SelectTab(1)
+    SaveManager:LoadAutoloadConfig()
 end
